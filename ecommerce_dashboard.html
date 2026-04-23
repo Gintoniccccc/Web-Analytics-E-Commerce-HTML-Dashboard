@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Web Analytics Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #22263a;
+    --accent: #f0a500;
+    --accent2: #e06c2b;
+    --text: #e8eaf0;
+    --text-muted: #7b8194;
+    --border: #2e3348;
+    --green: #4ade80;
+    --red: #f87171;
+    --radius: 12px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 24px;
+  }
+
+  /* TITLE */
+  .title-bar {
+    text-align: center;
+    padding: 20px 0 28px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 28px;
+  }
+  .title-bar h1 {
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    color: var(--text);
+  }
+  .title-bar h1 span { color: var(--accent); }
+
+  /* KPI ROW */
+  .kpi-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .kpi-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px 28px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .kpi-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+  }
+  .kpi-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 10px;
+  }
+  .kpi-value {
+    font-size: 40px;
+    font-weight: 700;
+    color: var(--accent);
+    font-family: 'DM Mono', monospace;
+  }
+
+  /* MIDDLE ROW */
+  .middle-row {
+    display: grid;
+    grid-template-columns: 1fr 1.2fr;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  /* CARD */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+  }
+  .card-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 16px;
+  }
+
+  /* TABLE */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  thead th {
+    text-align: left;
+    padding: 8px 10px;
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid var(--border);
+  }
+  tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background 0.15s;
+  }
+  tbody tr:hover { background: var(--surface2); }
+  tbody td {
+    padding: 10px 10px;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+  }
+  tbody td:first-child {
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 500;
+    color: var(--text);
+  }
+  .cvr-good { color: var(--green); }
+  .cvr-bad { color: var(--red); }
+
+  /* SLICER */
+  .slicer-row {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 20px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .slicer-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-right: 4px;
+  }
+  .slicer-btn {
+    padding: 6px 14px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-muted);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .slicer-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .slicer-btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #000;
+    font-weight: 600;
+  }
+
+  /* BOTTOM ROW */
+  .bottom-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+  }
+  .chart-container {
+    position: relative;
+    height: 220px;
+  }
+
+  /* FUNNEL VISUAL */
+  .funnel-visual {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 8px 0;
+  }
+  .funnel-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    transition: all 0.3s;
+  }
+  .funnel-bar {
+    height: 44px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 600;
+    color: #000;
+    transition: width 0.5s ease;
+    font-family: 'DM Mono', monospace;
+  }
+  .funnel-meta {
+    font-size: 10px;
+    color: var(--text-muted);
+    margin-top: 3px;
+    margin-bottom: 4px;
+  }
+  .funnel-arrow {
+    color: var(--text-muted);
+    font-size: 14px;
+    margin: 2px 0;
+  }
+</style>
+</head>
+<body>
+
+<!-- TITLE -->
+<div class="title-bar">
+  <h1>Web Analytics – <span>Checkout Process Dashboard</span></h1>
+</div>
+
+<!-- KPI ROW (static, no filter) -->
+<div class="kpi-row">
+  <div class="kpi-card">
+    <div class="kpi-label">User Product View in Total</div>
+    <div class="kpi-value">2,000</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-label">User Product Add in Total</div>
+    <div class="kpi-value">1,802</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-label">User Product Buy in Total</div>
+    <div class="kpi-value">943</div>
+  </div>
+</div>
+
+<!-- MIDDLE ROW -->
+<div class="middle-row">
+  <!-- Funnel Table -->
+  <div class="card">
+    <div class="card-title">Funnel by Channel</div>
+    <table>
+      <thead>
+        <tr>
+          <th>Channel</th>
+          <th>Views</th>
+          <th>Cart</th>
+          <th>Purchase</th>
+          <th>Cart CVR</th>
+          <th>Purchase CVR</th>
+        </tr>
+      </thead>
+      <tbody>
+        
+        <tr>
+          <td>direct</td>
+          <td>186</td>
+          <td>160</td>
+          <td>107</td>
+          <td class="cvr-good">86.02%</td>
+          <td class="cvr-good">66.88%</td>
+        </tr>
+        <tr>
+          <td>email</td>
+          <td>253</td>
+          <td>230</td>
+          <td>150</td>
+          <td class="cvr-good">90.91%</td>
+          <td class="cvr-good">65.22%</td>
+        </tr>
+        <tr>
+          <td>paid_search</td>
+          <td>410</td>
+          <td>366</td>
+          <td>233</td>
+          <td class="cvr-good">89.27%</td>
+          <td class="cvr-good">63.66%</td>
+        </tr>
+        <tr>
+          <td>organic_search</td>
+          <td>696</td>
+          <td>635</td>
+          <td>304</td>
+          <td class="cvr-good">91.24%</td>
+          <td class="cvr-bad">47.87%</td>
+        </tr>
+        <tr>
+          <td>referral</td>
+          <td>93</td>
+          <td>80</td>
+          <td>30</td>
+          <td class="cvr-good">86.02%</td>
+          <td class="cvr-bad">37.5%</td>
+        </tr>
+        <tr>
+          <td>social_media</td>
+          <td>362</td>
+          <td>331</td>
+          <td>119</td>
+          <td class="cvr-good">91.44%</td>
+          <td class="cvr-bad">35.95%</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Monthly Revenue -->
+  <div class="card">
+    <div class="card-title">Monthly Revenue Trend</div>
+    <div class="chart-container">
+      <canvas id="monthlyChart"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- SLICER -->
+<div class="slicer-row">
+  <span class="slicer-label">Channel</span>
+  <button class="slicer-btn active" onclick="filterChannel('all', this)">All</button>
+  <button class="slicer-btn" onclick="filterChannel('direct', this)">direct</button>
+  <button class="slicer-btn" onclick="filterChannel('email', this)">email</button>
+  <button class="slicer-btn" onclick="filterChannel('paid_search', this)">paid_search</button>
+  <button class="slicer-btn" onclick="filterChannel('organic_search', this)">organic_search</button>
+  <button class="slicer-btn" onclick="filterChannel('referral', this)">referral</button>
+  <button class="slicer-btn" onclick="filterChannel('social_media', this)">social_media</button>
+</div>
+
+<!-- BOTTOM ROW -->
+<div class="bottom-row">
+  <!-- Funnel -->
+  <div class="card">
+    <div class="card-title">Funnel</div>
+    <div class="funnel-visual" id="funnelViz"></div>
+  </div>
+
+  <!-- Cart Abandonment -->
+  <div class="card">
+    <div class="card-title">Cart Abandonment Rate</div>
+    <div class="chart-container">
+      <canvas id="abandonChart"></canvas>
+    </div>
+  </div>
+
+  <!-- Bounce Rate -->
+  <div class="card">
+    <div class="card-title">Bounce Rate by Channel</div>
+    <div class="chart-container">
+      <canvas id="bounceChart"></canvas>
+    </div>
+  </div>
+
+  <!-- Revenue by Channel -->
+  <div class="card">
+    <div class="card-title">Total Revenue by Channel</div>
+    <div class="chart-container">
+      <canvas id="revenueChart"></canvas>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Data ──────────────────────────────────────────────
+Chart.register(ChartDataLabels);
+const allChannels = ["direct", "email", "paid_search", "organic_search", "referral", "social_media"];
+const allCartAbandon = [33.1, 34.8, 36.3, 52.1, 62.5, 64.1];
+const allBounceRates = [29.1, 29.5, 30.8, 29.5, 31.2, 31.1];
+const allRevenue = [8114.0, 12961.0, 20358.0, 22589.0, 2461.0, 8400.0];
+const funnelData = {"view": 2000, "cart": 1802, "purchase": 943};
+const funnelTableData = [{"channel": "direct", "view_users": 186, "cart_users": 160, "purchase_users": 107, "cart_conversion_rate": 86.02, "purchase_conversion_rate": 66.88, "cart_abandonment_rate": 33.12}, {"channel": "email", "view_users": 253, "cart_users": 230, "purchase_users": 150, "cart_conversion_rate": 90.91, "purchase_conversion_rate": 65.22, "cart_abandonment_rate": 34.78}, {"channel": "paid_search", "view_users": 410, "cart_users": 366, "purchase_users": 233, "cart_conversion_rate": 89.27, "purchase_conversion_rate": 63.66, "cart_abandonment_rate": 36.34}, {"channel": "organic_search", "view_users": 696, "cart_users": 635, "purchase_users": 304, "cart_conversion_rate": 91.24, "purchase_conversion_rate": 47.87, "cart_abandonment_rate": 52.13}, {"channel": "referral", "view_users": 93, "cart_users": 80, "purchase_users": 30, "cart_conversion_rate": 86.02, "purchase_conversion_rate": 37.5, "cart_abandonment_rate": 62.5}, {"channel": "social_media", "view_users": 362, "cart_users": 331, "purchase_users": 119, "cart_conversion_rate": 91.44, "purchase_conversion_rate": 35.95, "cart_abandonment_rate": 64.05}];
+const monthlyData = {"months": ["2023-01", "2023-02", "2023-03", "2023-04", "2023-05", "2023-06", "2023-07", "2023-08", "2023-09", "2023-10", "2023-11", "2023-12"], "revenue": [318.0, 593.0, 1028.0, 2136.0, 2711.0, 4387.0, 5534.0, 7327.0, 8962.0, 11931.0, 12472.0, 17486.0]};
+
+const ACCENT = '#f0a500';
+const ACCENT2 = '#e06c2b';
+const SURFACE2 = '#22263a';
+const MUTED = '#7b8194';
+const GREEN = '#4ade80';
+const RED = '#f87171';
+
+const chartDefaults = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: { legend: { display: false } },
+  scales: {
+    x: { ticks: { color: MUTED, font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.04)' } },
+    y: { ticks: { color: MUTED, font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.04)' } }
+  }
+};
+
+// ── Monthly Chart (static) ────────────────────────────
+const monthlyCtx = document.getElementById('monthlyChart').getContext('2d');
+new Chart(monthlyCtx, {
+  type: 'line',
+  data: {
+    labels: monthlyData.months,
+    datasets: [{ data: monthlyData.revenue, borderColor: ACCENT, backgroundColor: 'rgba(240,165,0,0.08)',
+      tension: 0.4, pointBackgroundColor: ACCENT, pointRadius: 4, fill: true }]
+  },
+  options: { ...chartDefaults }
+});
+
+// ── Funnel Visualization ──────────────────────────────
+function renderFunnel(viewN, cartN, purchaseN) {
+  const max = viewN;
+  const steps = [
+    { label: 'View', value: viewN, pct: 100, color: ACCENT },
+    { label: 'Cart', value: cartN, pct: Math.round(cartN/max*100), color: ACCENT2 },
+    { label: 'Purchase', value: purchaseN, pct: Math.round(purchaseN/max*100), color: GREEN },
+  ];
+  const container = document.getElementById('funnelViz');
+  container.innerHTML = steps.map((s, i) => `
+    <div class="funnel-step">
+      <div class="funnel-bar" style="width:${s.pct}%;background:${s.color}">
+        ${s.value.toLocaleString()}
+      </div>
+      <div class="funnel-meta">${s.label} · ${s.pct}%</div>
+      ${i < steps.length - 1 ? '<div class="funnel-arrow">▼</div>' : ''}
+    </div>
+  `).join('');
+}
+renderFunnel(funnelData.view, funnelData.cart, funnelData.purchase);
+
+// ── Bottom Charts ─────────────────────────────────────
+let abandonChart, bounceChart, revenueChart;
+
+function makeBar(id, labels, data, colors) {
+  const ctx = document.getElementById(id).getContext('2d');
+  const isPct = id !== 'revenueChart';
+  return new Chart(ctx, {
+    type: 'bar',
+    data: { labels, datasets: [{ data, backgroundColor: colors || ACCENT,
+      borderRadius: 4,
+      datalabels: {
+        display: true,
+        color: '#e8eaf0',
+        font: { size: 10, weight: '600' },
+        formatter: val => isPct ? val.toFixed(1) + '%' : val.toLocaleString()
+      }
+    }] },
+    options: { 
+      ...chartDefaults, 
+      plugins: { 
+        ...chartDefaults.plugins,
+        tooltip: { callbacks: { label: ctx => ctx.parsed.y.toFixed(1) + (isPct ? '%' : '') } },
+        datalabels: { anchor: 'end', align: 'top' }
+      } 
+    }
+  });
+}
+
+function renderBottomCharts(channels, abandon, bounce, revenue) {
+  if (abandonChart) abandonChart.destroy();
+  if (bounceChart) bounceChart.destroy();
+  if (revenueChart) revenueChart.destroy();
+
+  abandonChart = makeBar('abandonChart', channels, abandon,
+    abandon.map(v => v > 55 ? RED : ACCENT));
+  bounceChart = makeBar('bounceChart', channels, bounce,
+    bounce.map(v => v > 30 ? RED : ACCENT));
+  revenueChart = makeBar('revenueChart', channels, revenue, ACCENT);
+}
+
+renderBottomCharts(allChannels, allCartAbandon, allBounceRates, allRevenue);
+
+// ── Filter ────────────────────────────────────────────
+function filterChannel(channel, btn) {
+  document.querySelectorAll('.slicer-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+
+  let chans, abandon, bounce, revenue, view, cart, purchase;
+
+  if (channel === 'all') {
+    chans = allChannels;
+    abandon = allCartAbandon;
+    bounce = allBounceRates;
+    revenue = allRevenue;
+    view = funnelData.view;
+    cart = funnelData.cart;
+    purchase = funnelData.purchase;
+  } else {
+    const idx = allChannels.indexOf(channel);
+    chans = [channel];
+    abandon = [allCartAbandon[idx]];
+    bounce = [allBounceRates[idx]];
+    revenue = [allRevenue[idx]];
+
+    const row = funnelTableData.find(r => r.channel === channel);
+    view = row ? row.view_users : 0;
+    cart = row ? row.cart_users : 0;
+    purchase = row ? row.purchase_users : 0;
+  }
+
+  renderFunnel(view, cart, purchase);
+  renderBottomCharts(chans, abandon, bounce, revenue);
+}
+</script>
+</body>
+</html>
