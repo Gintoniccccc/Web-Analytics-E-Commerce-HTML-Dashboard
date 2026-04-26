@@ -1,7 +1,7 @@
 -- ============================================================
 -- E-Commerce Web Analytics – SQL Analysis
 -- Database: ecommerce
--- Author: [Your Name]
+-- Author: [Gintoniccccc]
 -- Date: 2024
 -- ============================================================
 
@@ -237,40 +237,89 @@ WHERE amount_rank_by_channel = 1;
 -- 11. SAVED VIEWS
 -- ============================================================
 
--- View 1: Overall funnel metrics
-DROP VIEW IF EXISTS funnel_overall;
-CREATE VIEW funnel_overall AS
+-- ============================================================
+-- View 1: Bounce Rate by Channel
+-- ============================================================
+DROP VIEW IF EXISTS bounce_by_channel;
+CREATE VIEW bounce_by_channel AS
 SELECT
-    (SELECT COUNT(DISTINCT user_id) FROM events WHERE event_type = 'view') AS view_users,
-    (SELECT COUNT(DISTINCT user_id) FROM events WHERE event_type = 'cart') AS cart_users,
-    (SELECT COUNT(DISTINCT user_id) FROM events WHERE event_type = 'purchase') AS purchase_users,
-
-    (SELECT COUNT(DISTINCT user_id) FROM events WHERE event_type = 'cart') /
-    NULLIF((SELECT COUNT(DISTINCT user_id) FROM events WHERE event_type = 'view'), 0)
-        AS cart_conversion_rate,
-
-    (SELECT COUNT(DISTINCT user_id) FROM events WHERE event_type = 'purchase') /
-    NULLIF((SELECT COUNT(DISTINCT user_id) FROM events WHERE event_type = 'cart'), 0)
-        AS purchase_conversion_rate;
-
-
--- View 2: Funnel metrics by acquisition channel
-DROP VIEW IF EXISTS funnel_by_channel;
-CREATE VIEW funnel_by_channel AS
+    sessions.channel AS channel,
+    COUNT(0)  AS total_sessions,
+    SUM(sessions.bounced) AS bounced_sessions,
+    ROUND((SUM(sessions.bounced) / COUNT(0)) * 100, 1) AS bounce_rate
+FROM sessions
+GROUP BY sessions.channel;
+ 
+ 
+-- ============================================================
+-- View 2: Funnel by Channel
+-- ============================================================
+DROP VIEW IF EXISTS funnel_chaannel;
+CREATE VIEW funnel_chaannel AS
 SELECT
     u.channel,
     COUNT(DISTINCT CASE WHEN e.event_type = 'view'     THEN e.user_id END) AS view_users,
     COUNT(DISTINCT CASE WHEN e.event_type = 'cart'     THEN e.user_id END) AS cart_users,
     COUNT(DISTINCT CASE WHEN e.event_type = 'purchase' THEN e.user_id END) AS purchase_users,
-
+ 
     COUNT(DISTINCT CASE WHEN e.event_type = 'cart' THEN e.user_id END) /
     NULLIF(COUNT(DISTINCT CASE WHEN e.event_type = 'view' THEN e.user_id END), 0)
         AS cart_conversion_rate,
-
+ 
     COUNT(DISTINCT CASE WHEN e.event_type = 'purchase' THEN e.user_id END) /
     NULLIF(COUNT(DISTINCT CASE WHEN e.event_type = 'cart' THEN e.user_id END), 0)
         AS purchase_conversion_rate
-
+ 
 FROM events e
 LEFT JOIN users u ON e.user_id = u.user_id
 GROUP BY u.channel;
+ 
+ 
+-- ============================================================
+-- View 3: Overall Funnel KPIs
+-- ============================================================
+DROP VIEW IF EXISTS funnel_chaannel;
+CREATE VIEW funnel_chaannel AS
+SELECT
+    u.channel,
+    COUNT(DISTINCT CASE WHEN e.event_type = 'view'     THEN e.user_id END) AS view_users,
+    COUNT(DISTINCT CASE WHEN e.event_type = 'cart'     THEN e.user_id END) AS cart_users,
+    COUNT(DISTINCT CASE WHEN e.event_type = 'purchase' THEN e.user_id END) AS purchase_users,
+ 
+    COUNT(DISTINCT CASE WHEN e.event_type = 'cart' THEN e.user_id END) /
+    NULLIF(COUNT(DISTINCT CASE WHEN e.event_type = 'view' THEN e.user_id END), 0)
+        AS cart_conversion_rate,
+ 
+    COUNT(DISTINCT CASE WHEN e.event_type = 'purchase' THEN e.user_id END) /
+    NULLIF(COUNT(DISTINCT CASE WHEN e.event_type = 'cart' THEN e.user_id END), 0)
+        AS purchase_conversion_rate
+ 
+FROM events e
+LEFT JOIN users u ON e.user_id = u.user_id
+GROUP BY u.channel;
+ 
+ 
+-- ============================================================
+-- View 4: Monthly Revenue Trend
+-- ============================================================
+DROP VIEW IF EXISTS monthly_revenue;
+CREATE VIEW monthly_revenue AS
+SELECT
+    DATE_FORMAT(transaction_date, '%Y-%m') AS month,
+    ROUND(SUM(amount), 0) AS total_revenue
+FROM transactions
+GROUP BY DATE_FORMAT(transaction_date, '%Y-%m')
+ORDER BY month;
+ 
+ 
+-- ============================================================
+-- View 5: Revenue by Channel
+-- ============================================================
+DROP VIEW IF EXISTS revenue_by_channel;
+CREATE VIEW revenue_by_channel AS
+SELECT
+    channel,
+    ROUND(SUM(amount), 0) AS total_revenue
+FROM transactions
+GROUP BY channel
+ORDER BY total_revenue DESC;
