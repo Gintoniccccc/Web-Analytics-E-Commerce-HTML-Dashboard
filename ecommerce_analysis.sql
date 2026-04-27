@@ -278,25 +278,20 @@ GROUP BY u.channel;
 -- ============================================================
 -- View 3: Overall Funnel KPIs
 -- ============================================================
-DROP VIEW IF EXISTS funnel_chaannel;
-CREATE VIEW funnel_chaannel AS
+DROP VIEW IF EXISTS funnel_overall;
+CREATE VIEW funnel_overall AS
 SELECT
-    u.channel,
-    COUNT(DISTINCT CASE WHEN e.event_type = 'view'     THEN e.user_id END) AS view_users,
-    COUNT(DISTINCT CASE WHEN e.event_type = 'cart'     THEN e.user_id END) AS cart_users,
-    COUNT(DISTINCT CASE WHEN e.event_type = 'purchase' THEN e.user_id END) AS purchase_users,
+    (SELECT COUNT(DISTINCT user_id) FROM events WHERE event_type = 'view')     AS view_users,
+    (SELECT COUNT(DISTINCT user_id) FROM events WHERE event_type = 'cart')     AS cart_users,
+    (SELECT COUNT(DISTINCT user_id) FROM events WHERE event_type = 'purchase') AS purchase_users,
  
-    COUNT(DISTINCT CASE WHEN e.event_type = 'cart' THEN e.user_id END) /
-    NULLIF(COUNT(DISTINCT CASE WHEN e.event_type = 'view' THEN e.user_id END), 0)
+    (SELECT COUNT(DISTINCT user_id) FROM events WHERE event_type = 'cart') /
+    NULLIF((SELECT COUNT(DISTINCT user_id) FROM events WHERE event_type = 'view'), 0)
         AS cart_conversion_rate,
  
-    COUNT(DISTINCT CASE WHEN e.event_type = 'purchase' THEN e.user_id END) /
-    NULLIF(COUNT(DISTINCT CASE WHEN e.event_type = 'cart' THEN e.user_id END), 0)
-        AS purchase_conversion_rate
- 
-FROM events e
-LEFT JOIN users u ON e.user_id = u.user_id
-GROUP BY u.channel;
+    (SELECT COUNT(DISTINCT user_id) FROM events WHERE event_type = 'purchase') /
+    NULLIF((SELECT COUNT(DISTINCT user_id) FROM events WHERE event_type = 'cart'), 0)
+        AS purchase_conversion_rate;
  
  
 -- ============================================================
